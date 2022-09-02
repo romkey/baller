@@ -5,7 +5,7 @@ Generates a skeletal *ball ESP32 or ESP8266 project that posts sensor values to 
 ## Usage
 
 ```
-bin/baller new NAME --mit --git --sensors # --
+bin/baller new NAME --mit --git --sensors # --esp32 --esp8266
 ```
 
 Generates a PlatformIO project in the `NAME` directory supporting `#` sensors.
