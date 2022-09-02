@@ -1,0 +1,61 @@
+#include <Arduino.h>
+
+#include <WiFi.h>
+
+#include "config.h"
+
+#include <multiball/app.h>
+#include <multiball/wifi.h>
+#include <multiball/ota_updates.h>
+#include <multiball/homebus.h>
+
+#ifdef USE_DIAGNOSTICS
+#include <diagnostics.h>
+#endif
+
+#include <ESPmDNS.h>
+
+#include <FS.h>
+#include <SPIFFS.h>
+
+#include "<%= name %>.h"
+
+#define APP_NAME "<%= name %>"
+
+MultiballApp App;
+
+void setup() {
+  const wifi_credential_t wifi_credentials[] = {
+    { WIFI_SSID1, WIFI_PASSWORD1 },
+    { WIFI_SSID2, WIFI_PASSWORD2 },
+    { WIFI_SSID3, WIFI_PASSWORD3 }
+  };
+
+  Serial.begin(115200);
+
+  delay(500);
+
+  App.wifi_credentials(3, wifi_credentials);
+  App.begin(APP_NAME);
+  Serial.println("[app]");
+
+  <%= name %>_setup();
+  Serial.println("[<%= name %>]");
+
+#ifdef USE_DIAGNOSTICS
+  diagnostics_setup(APP_NAME);
+  Serial.println("[diagnostics]");
+#endif
+
+  delay(500);
+}
+
+void loop() {
+  App.handle();
+
+  <%= name %>_loop();
+
+#ifdef USE_DIAGNOSTICS
+  diagnostics_loop(<%= name %>_stream);
+#endif
+}

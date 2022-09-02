@@ -1,0 +1,165 @@
+#include "<%= name %>.h"
+
+#include <Arduino.h>
+#include <Wire.h>
+#include <time.h>
+
+#include "config.h"
+
+#include <multiball/app.h>
+// #include <multiball/wifi.h>
+#include <multiball/homebus.h>
+
+
+#ifdef USE_DIAGNOSTICS
+#include <diagnostics.h>
+#endif
+
+<% options[:sensors].times do |i| %>
+#include <sensor<%= i %>.h>
+<% end %>
+
+<% options[:sensors].times do |i| %>
+Sensor<%= i %> sensor<%= i %>;
+<% end %>
+
+void <%= name %>_setup() {
+  Wire.begin();
+
+<% options[:sensors].times do |i| %>
+  if(sensor<%= i %>.begin()) {
+    Serial.println("[sensor<%= i %>]");
+  } else {
+    Serial.println("Sensor<%= i %> not found");
+  }
+<% end %>
+
+  homebus_set_provisioner(HOMEBUS_SERVER, HOMEBUS_AUTHENTICATION_TOKEN);
+
+  static const char *publishes[] = {
+		      DDC_SYSTEM,
+		      DDC_DIAGNOSTIC,
+		      NULL
+  };
+  static const char *consumes[] = { NULL };
+  static char mac_address[3*6];
+
+  strncpy(mac_address, App.mac_address().c_str(), 3*6);
+
+  // this is... wrong - needs to be sorted for proper Homebus use
+  homebus_configure("Homebus",
+		    "<%= name %>",
+		    mac_address,
+		    "",
+		    publishes,
+		    consumes);
+
+  homebus_setup();
+  Serial.println("[homebus]");
+}
+
+<% options[:sensors].times do |i| %>
+static boolean sensor<%= i %>_update(char* buf, size_t buf_len) {
+  if(!sensor<%= i %>.is_ready())
+    return false;
+
+  snprintf(buf, buf_len, "{ \"value\": %u }",
+           sensor<%= i %>.value());
+
+  return true;
+}
+<% end %>
+
+/*
+ * we do this once at startup, and not again unless our IP address changes
+ */
+static boolean <%= name %>_system_update(char* buf, size_t buf_len) {
+  static IPAddress oldIP = IPAddress(0, 0, 0, 0);
+  static String mac_address = WiFi.macAddress();
+  IPAddress local = WiFi.localIP();
+
+  if(oldIP == local)
+    return false;
+
+  snprintf(buf,
+	   buf_len,
+	   "{ \"name\": \"%s\", \"platform\": \"%s\", \"build\": \"%s\", \"ip\": \"%d.%d.%d.%d\", \"mac_addr\": \"%s\" }",
+	   App.hostname().c_str(), "<%= name %>", App.build_info().c_str(), local[0], local[1], local[2], local[3], mac_address.c_str()
+	   );
+
+#ifdef VERBOSE
+  Serial.println(buf);
+#endif
+
+  return true;
+}
+
+static boolean <%= name %>_diagnostic_update(char* buf, size_t buf_len) {
+  snprintf(buf, buf_len, "{ \"freeheap\": %d, \"uptime\": %lu, \"rssi\": %d, \"reboots\": %d, \"wifi_failures\": %d }",
+	   ESP.getFreeHeap(), millis()/1000, WiFi.RSSI(), App.boot_count(), App.wifi_failures());
+
+#ifdef VERBOSE
+  Serial.println(buf);
+#endif
+
+  return true;
+}
+
+
+void <%= name %>_loop() {
+  static unsigned long next_loop = 0;
+
+  if(next_loop > millis())
+    return;
+
+  next_loop = millis() + UPDATE_DELAY;
+
+<% options[:sensors].times do |i| %>
+   sensor<%= i %>.loop();
+<% end %>
+
+  #define BUFFER_LENGTH 700
+  char buffer[BUFFER_LENGTH + 1];
+
+<% options[:sensors].times do |i| %>
+  if(sensor<%= i %>_update(buffer, BUFFER_LENGTH)) {
+    homebus_publish_to(DDC_SENSOR<%= i %>, buffer);
+  }
+<% end %>
+
+  if(<%= name %>_system_update(buffer, BUFFER_LENGTH)) {
+    homebus_publish_to(DDC_SYSTEM, buffer);
+  }
+
+  if(<%= name %>_diagnostic_update(buffer, BUFFER_LENGTH)) {
+    homebus_publish_to(DDC_DIAGNOSTIC, buffer);
+  }
+}
+
+void homebus_mqtt_callback(const char *ddc, const char *payload) {
+}
+
+/* 
+ * this callback is used to stream sensor data for diagnostics
+ */
+#ifdef USE_DIAGNOSTICS
+void <%= name %>_stream() {
+  static uint8_t count = 0;
+
+  if(count == 0) {
+    Serial.println("MPS");
+  }
+
+  if(++count == 10) {
+    count = 0;
+  }
+
+  if(0) {
+  Serial.println("[system]");
+  Serial.printf("  Uptime %6u seconds\n", millis() / 1000);
+  Serial.printf("  Free heap %u bytes\n", ESP.getFreeHeap());
+  Serial.printf("  Wifi RSSI %d\n", WiFi.RSSI());
+  }
+}
+#endif
+

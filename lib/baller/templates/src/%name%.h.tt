@@ -1,0 +1,11 @@
+#pragma once
+
+#define DDC_SYSTEM "org.homebus.experimental.system"
+#define DDC_DIAGNOSTIC "org.homebus.experimental.diagnostic"
+<% options[:sensors].times do |i| %>
+#define DDC_SENSOR<%= i %> "org.homebus.experimental.sensor<%= i %>"
+<% end %>
+
+void <%= name %>_setup();
+void <%= name %>_loop();
+void <%= name %>_stream();

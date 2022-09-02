@@ -1,0 +1,5 @@
+#!/usr/bin/env ruby
+
+require 'baller/cli'
+
+Baller::CLI.start(ARGV)
