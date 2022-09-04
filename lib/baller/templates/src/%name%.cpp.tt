@@ -112,7 +112,7 @@ void <%= name %>_loop() {
   if(next_loop > millis())
     return;
 
-  next_loop = millis() + UPDATE_DELAY;
+  next_loop = millis() + UPDATE_INTERVAL;
 
 <% options[:sensors].times do |i| %>
    sensor<%= i %>.loop();

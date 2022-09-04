@@ -7,7 +7,8 @@
 #define WIFI_SSID3     "<%= options[:wifi_ssid3] %>"
 #define WIFI_PASSWORD3 "<%= options[:wifi_password3 ] %>"
 
-#define UPDATE_DELAY 60*1000
+// default is one update per 60 seconds; change this as needed
+#define UPDATE_INTERVAL 60*1000
 
 #define HOMEBUS_AUTHENTICATION_TOKEN "<%= options[:homebus_token] %>"
 #define HOMEBUS_SERVER "<%= options[:homebus_server] %>"
